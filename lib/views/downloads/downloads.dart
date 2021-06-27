@@ -1,198 +1,253 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:ytdownloader/controllers/videocontroller.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
-class DownloadsPage extends StatefulWidget {
-  @override
-  _DownloadsPageState createState() => _DownloadsPageState();
-}
-
-class _DownloadsPageState extends State<DownloadsPage> {
+class DownloadsPage extends StatelessWidget {
   final VideoController controller = Get.find();
   @override
   Widget build(BuildContext context) {
-    return Container(
-      child: Center(
-        child: ValueListenableBuilder<Box<TaskInfo>>(
-            valueListenable: controller.downloadsBox.listenable(),
-            builder: (context, snapshot, _) {
-              return snapshot.isEmpty
-                  ? Text(
-                      'No Downloads\nGo back and download something',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.deepPurple,
-                        fontSize: 25,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    )
-                  : ListView.builder(
-                      physics: BouncingScrollPhysics(),
-                      itemCount: snapshot.length,
-                      itemBuilder: (context, index) {
-                        var downloadTask = snapshot.getAt(index);
-                        return downloadTask.status ==
-                                    DownloadTaskStatus.failed.value ||
-                                downloadTask.status ==
-                                    DownloadTaskStatus.undefined.value ||
-                                downloadTask.status ==
-                                    DownloadTaskStatus.canceled.value
-                            ? SizedBox.shrink()
-                            : Container(
-                                margin: EdgeInsets.symmetric(
-                                  vertical: 4.0,
-                                  horizontal: 4.0,
-                                ),
-                                child: Card(
-                                  child: ListTile(
-                                    onTap: () {
-                                      if (downloadTask.status ==
-                                          DownloadTaskStatus.complete.value) {
-                                        FlutterDownloader.open(
-                                            taskId: downloadTask.taskId);
-                                      } else {
-                                        Get.snackbar(
-                                          'Let the Download Finish',
-                                          'Let the download finish first',
-                                        );
-                                      }
-                                    },
-                                    isThreeLine: downloadTask.progress < 100,
-                                    contentPadding: EdgeInsets.symmetric(
-                                      vertical: 8.0,
-                                      horizontal: 16.0,
-                                    ),
-                                    title: Text(
-                                      downloadTask.name,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    subtitle: Visibility(
-                                      visible: downloadTask.progress < 100,
-                                      maintainSize: false,
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 16.0,
-                                        ),
-                                        child: LinearProgressIndicator(
-                                          value: (downloadTask.progress / 100)
-                                              .toDouble(),
-                                        ),
-                                      ),
-                                    ),
-                                    leading:
-                                        Text(downloadTask.progress.toString()),
-                                    trailing: IconButton(
-                                      icon: Icon(
-                                        downloadTask.status ==
-                                                DownloadTaskStatus.running.value
-                                            ? Icons.pause
-                                            : downloadTask.status ==
-                                                    DownloadTaskStatus
-                                                        .paused.value
-                                                ? Icons.play_arrow_outlined
-                                                : downloadTask.status ==
-                                                        DownloadTaskStatus
-                                                            .complete.value
-                                                    ? Icons.delete
-                                                    : downloadTask.status ==
-                                                            DownloadTaskStatus
-                                                                .failed.value
-                                                        ? Icons.refresh
-                                                        : downloadTask.status ==
-                                                                DownloadTaskStatus
-                                                                    .enqueued
-                                                                    .value
-                                                            ? Icons.queue
-                                                            : Icons.error,
-                                      ),
-                                      onPressed: () async {
-                                        if (downloadTask.status ==
-                                            DownloadTaskStatus.running.value) {
-                                          FlutterDownloader.pause(
-                                              taskId: downloadTask.taskId);
-                                        } else if (downloadTask.status ==
-                                            DownloadTaskStatus.paused.value) {
-                                          var newTaskId =
-                                              await FlutterDownloader.resume(
-                                            taskId: downloadTask.taskId,
-                                          );
-                                          if (newTaskId != null) {
-                                            downloadTask.taskId = newTaskId;
-                                            controller.downloadsBox
-                                                .putAt(index, downloadTask);
-                                          } else {
-                                            var newTaskId =
-                                                await FlutterDownloader.retry(
-                                              taskId: downloadTask.taskId,
-                                            );
-                                            if (newTaskId != null) {
-                                              downloadTask.taskId = newTaskId;
-                                              controller.downloadsBox
-                                                  .putAt(index, downloadTask);
-                                            } else {
-                                              await FlutterDownloader.remove(
-                                                taskId: downloadTask.taskId,
-                                                shouldDeleteContent: true,
-                                              );
-                                              controller.downloadsBox
-                                                  .deleteAt(index);
-                                            }
-                                          }
-                                        } else if (downloadTask.status ==
-                                            DownloadTaskStatus.failed.value) {
-                                          var newTaskId =
-                                              await FlutterDownloader.retry(
-                                            taskId: downloadTask.taskId,
-                                          );
-                                          downloadTask.taskId = newTaskId;
-                                          controller.downloadsBox
-                                              .putAt(index, downloadTask);
-                                        } else if (downloadTask.status ==
-                                            DownloadTaskStatus.complete.value) {
-                                          Get.dialog(AlertDialog(
-                                            title: Text('Are you Sure?'),
-                                            content: Text(
-                                              'Are your sure you want to delete this file?',
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () async {
-                                                  Get.back();
-                                                },
-                                                child: Text('Cancel'),
-                                              ),
-                                              TextButton(
-                                                onPressed: () async {
-                                                  Get.back();
-                                                  await FlutterDownloader
-                                                      .remove(
-                                                    taskId: downloadTask.taskId,
-                                                    shouldDeleteContent: true,
-                                                  );
-                                                  controller.downloadsBox
-                                                      .deleteAt(index);
-                                                },
-                                                child: Text('Yes'),
-                                              ),
-                                            ],
-                                          ));
-                                        }
-                                        // print(downloadTask.savedDir);
-                                        // FlutterDownloader.open(
-                                        //     taskId: downloadTask.taskId);
-                                      },
-                                    ),
-                                  ),
-                                ),
-                              );
-                      },
-                    );
-            }),
+    return ValueListenableBuilder<Box<TaskInfo>>(
+        valueListenable: controller.downloadsBox.listenable(),
+        builder: (context, snapshot, _) {
+          return snapshot.isEmpty
+              ? NoDownloadsText()
+              : Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: ListView.builder(
+                    physics: BouncingScrollPhysics(),
+                    itemCount: snapshot.length,
+                    itemBuilder: (context, index) {
+                      var downloadTask = snapshot.getAt(index);
+                      var failed = downloadTask.status ==
+                              DownloadTaskStatus.failed.value ||
+                          downloadTask.status ==
+                              DownloadTaskStatus.undefined.value ||
+                          downloadTask.status ==
+                              DownloadTaskStatus.canceled.value;
+                      return failed
+                          ? SizedBox.shrink()
+                          : DownloadListTile(taskInfo: downloadTask);
+                    },
+                  ),
+                );
+        });
+  }
+}
+
+class NoDownloadsText extends StatelessWidget {
+  const NoDownloadsText({
+    Key key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        'No Downloads\nPlease Go back and download something',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: Colors.deepPurple,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
       ),
+    );
+  }
+}
+
+class DownloadListTile extends StatelessWidget {
+  final VideoController controller = Get.find();
+
+  DownloadListTile({
+    Key key,
+    this.taskInfo,
+  }) : super(key: key);
+  final TaskInfo taskInfo;
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        AnimatedContainer(
+          duration: Duration(milliseconds: 200),
+          padding: EdgeInsets.symmetric(horizontal: 8),
+          margin: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          height: kToolbarHeight * 2,
+          decoration: BoxDecoration(
+              color: Colors.red.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10)),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Icon(
+                Icons.delete_outline_outlined,
+                size: 36,
+                color: Colors.red,
+              ),
+              Icon(
+                Icons.delete_outline_outlined,
+                size: 36,
+                color: Colors.red,
+              ),
+            ],
+          ),
+        ),
+        Dismissible(
+          onDismissed: (direcion) async {
+            await controller.downloadsBox.deleteAt(controller
+                .downloadsBox.values
+                .toList()
+                .indexWhere((element) => element.taskId == taskInfo.taskId));
+            FlutterDownloader.remove(taskId: taskInfo.taskId);
+          },
+          key: ValueKey(taskInfo.taskId),
+          child: Container(
+            margin: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            height: kToolbarHeight * 2,
+            decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    offset: Offset(0, 3),
+                    blurRadius: 10,
+                    color: Colors.grey.shade200,
+                  )
+                ],
+                borderRadius: BorderRadius.circular(10)),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AnimatedContainer(
+                  duration: Duration(milliseconds: 200),
+                  width: 80,
+                  child: taskInfo.status == DownloadTaskStatuss.complete.value
+                      ? FutureBuilder<Uint8List>(
+                          future: VideoThumbnail.thumbnailData(
+                              video: taskInfo.link,
+                              maxWidth: 80,
+                              maxHeight: (kToolbarHeight * 2).toInt(),
+                              quality: 60),
+                          builder: (context, snapshot) => snapshot.hasData &&
+                                  !snapshot.hasError
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.only(
+                                      topLeft: Radius.circular(10),
+                                      bottomLeft: Radius.circular(10)),
+                                  child: Container(
+                                      width: 80,
+                                      decoration: BoxDecoration(
+                                          image: DecorationImage(
+                                              fit: BoxFit.cover,
+                                              image:
+                                                  MemoryImage(snapshot.data)))))
+                              : Center(child: Icon(Icons.play_arrow_outlined)),
+                        )
+                      : Center(
+                          child: Stack(
+                            children: [
+                              Align(
+                                alignment: Alignment.center,
+                                child: CircularProgressIndicator(
+                                  value: taskInfo.progress.toDouble() / 100,
+                                  valueColor:
+                                      AlwaysStoppedAnimation(Colors.deepPurple),
+                                  backgroundColor:
+                                      Colors.deepPurple.withOpacity(0.2),
+                                ),
+                              ),
+                              Align(
+                                  alignment: Alignment.center,
+                                  child:
+                                      Text(taskInfo.progress.toString() + '%'))
+                            ],
+                          ),
+                        ),
+                ),
+                SizedBox(
+                  width: 16,
+                ),
+                Expanded(
+                    child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Text(
+                      taskInfo.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context)
+                          .textTheme
+                          .headline6
+                          .copyWith(fontSize: 16),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        IconButton(
+                            onPressed: () {
+                              if (taskInfo.status ==
+                                  DownloadTaskStatuss.complete.value) {
+                                FlutterDownloader.open(taskId: taskInfo.taskId);
+                              } else if (taskInfo.status ==
+                                  DownloadTaskStatuss.running.value) {
+                                FlutterDownloader.pause(
+                                    taskId: taskInfo.taskId);
+                              } else if (taskInfo.status ==
+                                  DownloadTaskStatuss.paused.value) {
+                                FlutterDownloader.resume(
+                                    taskId: taskInfo.taskId);
+                              }
+                            },
+                            icon: Icon(taskInfo.status ==
+                                        DownloadTaskStatuss.complete.value ||
+                                    taskInfo.status ==
+                                        DownloadTaskStatuss.paused.value
+                                ? Icons.play_arrow
+                                : Icons.pause)),
+                        IconButton(
+                          onPressed: () async {
+                            if (taskInfo.status ==
+                                DownloadTaskStatuss.complete.value) {
+                              await controller.downloadsBox.deleteAt(controller
+                                  .downloadsBox.values
+                                  .toList()
+                                  .indexWhere((element) =>
+                                      element.taskId == taskInfo.taskId));
+                              await FlutterDownloader.remove(
+                                  taskId: taskInfo.taskId);
+                            } else {
+                              FlutterDownloader.cancel(taskId: taskInfo.taskId)
+                                  .whenComplete(() async {
+                                await controller.downloadsBox.deleteAt(
+                                    controller.downloadsBox.values
+                                        .toList()
+                                        .indexWhere((element) =>
+                                            element.taskId == taskInfo.taskId));
+                              });
+                            }
+                          },
+                          icon: Icon(
+                            taskInfo.status ==
+                                    DownloadTaskStatuss.complete.value
+                                ? Icons.delete_outline_outlined
+                                : Icons.stop,
+                          ),
+                        ),
+                        IconButton(
+                            onPressed: () {}, icon: Icon(Icons.edit_outlined))
+                      ],
+                    ),
+                  ],
+                )),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

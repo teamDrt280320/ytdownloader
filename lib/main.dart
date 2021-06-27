@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:get/route_manager.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hive/hive.dart';
 import 'package:ytdownloader/controllers/videocontroller.dart';
 import 'package:ytdownloader/utility/initialbindings.dart';
@@ -13,10 +14,10 @@ Future<void> main() async {
   Hive.registerAdapter(TaskInfoAdapter());
   await Hive.initFlutter();
   await Hive.openBox<TaskInfo>('downloads');
-  runApp(MyApp());
+  runApp(App());
 }
 
-class MyApp extends StatelessWidget {
+class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
@@ -24,6 +25,7 @@ class MyApp extends StatelessWidget {
       initialBinding: InitialBindings(),
       title: 'FYI Downloader',
       theme: ThemeData(
+        textTheme: GoogleFonts.poppinsTextTheme(),
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
