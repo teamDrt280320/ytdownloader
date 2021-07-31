@@ -125,7 +125,7 @@ class DownloadListTile extends StatelessWidget {
                 AnimatedContainer(
                   duration: Duration(milliseconds: 200),
                   width: 80,
-                  child: taskInfo.status == DownloadTaskStatuss.complete.value
+                  child: taskInfo.status == DownloadTaskStatus.complete.value
                       ? FutureBuilder<Uint8List>(
                           future: VideoThumbnail.thumbnailData(
                               video: taskInfo.link,
@@ -190,28 +190,28 @@ class DownloadListTile extends StatelessWidget {
                         IconButton(
                             onPressed: () {
                               if (taskInfo.status ==
-                                  DownloadTaskStatuss.complete.value) {
+                                  DownloadTaskStatus.complete.value) {
                                 FlutterDownloader.open(taskId: taskInfo.taskId);
                               } else if (taskInfo.status ==
-                                  DownloadTaskStatuss.running.value) {
+                                  DownloadTaskStatus.running.value) {
                                 FlutterDownloader.pause(
                                     taskId: taskInfo.taskId);
                               } else if (taskInfo.status ==
-                                  DownloadTaskStatuss.paused.value) {
+                                  DownloadTaskStatus.paused.value) {
                                 FlutterDownloader.resume(
                                     taskId: taskInfo.taskId);
                               }
                             },
                             icon: Icon(taskInfo.status ==
-                                        DownloadTaskStatuss.complete.value ||
+                                        DownloadTaskStatus.complete.value ||
                                     taskInfo.status ==
-                                        DownloadTaskStatuss.paused.value
+                                        DownloadTaskStatus.paused.value
                                 ? Icons.play_arrow
                                 : Icons.pause)),
                         IconButton(
                           onPressed: () async {
                             if (taskInfo.status ==
-                                DownloadTaskStatuss.complete.value) {
+                                DownloadTaskStatus.complete.value) {
                               await controller.downloadsBox.deleteAt(controller
                                   .downloadsBox.values
                                   .toList()
@@ -231,8 +231,7 @@ class DownloadListTile extends StatelessWidget {
                             }
                           },
                           icon: Icon(
-                            taskInfo.status ==
-                                    DownloadTaskStatuss.complete.value
+                            taskInfo.status == DownloadTaskStatus.complete.value
                                 ? Icons.delete_outline_outlined
                                 : Icons.stop,
                           ),

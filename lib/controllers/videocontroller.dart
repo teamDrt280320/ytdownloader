@@ -50,7 +50,6 @@ class VideoController extends GetxController {
   void _bindBackgroundIsolate() {
     bool isSuccess = IsolateNameServer.registerPortWithName(
         _port.sendPort, 'downloader_send_port');
-    print(isSuccess);
     if (!isSuccess) {
       _unbindBackgroundIsolate();
       _bindBackgroundIsolate();
@@ -69,9 +68,9 @@ class VideoController extends GetxController {
               snackPosition: SnackPosition.TOP,
             );
           }
-          final index = downloadsBox.values.toList().indexWhere(
-                (task) => task.taskId == id,
-              );
+          final index = downloadsBox.values
+              .toList()
+              .indexWhere((task) => task.taskId == id);
           if (index != -1) {
             var item = downloadsBox.getAt(index);
             item.status = status.value;
@@ -87,16 +86,17 @@ class VideoController extends GetxController {
   }
 
   loadAllTasks() async {
-    // for (var item in await FlutterDownloader.loadTasks()) {
-    //   downloadsBox.add(new TaskInfo(
-    //     name: item.filename,
-    //     link: item.url,
-    //     progress: item.progress,
-    //     status: item.status.value,
-    //     taskId: item.taskId,
-    //   ));
-    // }
+    for (var item in await FlutterDownloader.loadTasks()) {
+      downloadsBox.add(new TaskInfo(
+        name: item.filename,
+        link: item.url,
+        progress: item.progress,
+        status: item.status.value,
+        taskId: item.taskId,
+      ));
+    }
   }
+
   Future<List<DownloadTask>> getTaskInfo(String taskId) async {
     return await FlutterDownloader.loadTasksWithRawQuery(
             query: 'SELECT * FROM task WHERE task_id=\'$taskId\'')
@@ -127,10 +127,7 @@ class VideoController extends GetxController {
 
   downloadVideo(String url, String filename) async {
     if (await Permission.storage.request().isGranted) {
-      if (await File((await getExternalStorageDirectories(
-                      type: StorageDirectory.downloads))
-                  .first
-                  .path +
+      if (await File((await getExternalStorageDirectory()).path +
               Platform.pathSeparator +
               filename)
           .exists()) {
@@ -148,10 +145,7 @@ class VideoController extends GetxController {
       } else {
         await FlutterDownloader.enqueue(
           url: url,
-          savedDir: (await getExternalStorageDirectories(
-                  type: StorageDirectory.downloads))
-              .first
-              .path,
+          savedDir: (await getExternalStorageDirectory()).path,
           fileName: filename,
         );
         Get.snackbar(
@@ -192,42 +186,4 @@ class TaskInfo {
     this.progress,
     this.status,
   });
-}
-
-// class _ItemHolder {
-//   final String name;
-//   final TaskInfo task;
-
-//   _ItemHolder({this.name, this.task});
-// }
-
-class DownloadTaskStatuss {
-  final int _value;
-
-  const DownloadTaskStatuss(int value) : _value = value;
-
-  int get value => _value;
-
-  static DownloadTaskStatuss from(int value) => DownloadTaskStatuss(value);
-
-  static const undefined = const DownloadTaskStatuss(0);
-  static const enqueued = const DownloadTaskStatuss(1);
-  static const running = const DownloadTaskStatuss(2);
-  static const complete = const DownloadTaskStatuss(3);
-  static const failed = const DownloadTaskStatuss(4);
-  static const canceled = const DownloadTaskStatuss(5);
-  static const paused = const DownloadTaskStatuss(6);
-
-  @override
-  bool operator ==(Object o) {
-    if (identical(this, o)) return true;
-
-    return o is DownloadTaskStatuss && o._value == _value;
-  }
-
-  @override
-  int get hashCode => _value.hashCode;
-
-  @override
-  String toString() => 'DownloadTaskStatus($_value)';
 }

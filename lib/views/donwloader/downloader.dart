@@ -94,52 +94,7 @@ class DownloaderPage extends StatelessWidget {
                                     fontSize: 20.0,
                                   ),
                                 ),
-                                Obx(
-                                  () => ListView.builder(
-                                    padding: EdgeInsets.only(
-                                      bottom: 16.0,
-                                    ),
-                                    shrinkWrap: true,
-                                    physics: NeverScrollableScrollPhysics(),
-                                    itemCount: _videoController.videoInfo.value
-                                        .streamInfo.muxed.length,
-                                    itemBuilder: (context, index) {
-                                      var streamInfo = _videoController
-                                          .videoInfo.value.streamInfo.muxed
-                                          .elementAt(index);
-                                      return Card(
-                                        child: ListTile(
-                                          title: Text(
-                                            streamInfo.videoQualityLabel,
-                                          ),
-                                          trailing: IconButton(
-                                            icon: Icon(Icons.download_outlined),
-                                            onPressed: () {
-                                              _videoController.downloadVideo(
-                                                streamInfo.url.toString(),
-                                                _videoController.videoInfo.value
-                                                        .video.title +
-                                                    '_' +
-                                                    streamInfo
-                                                        .videoQualityLabel +
-                                                    '_' +
-                                                    streamInfo
-                                                        .videoResolution.height
-                                                        .toString() +
-                                                    'x' +
-                                                    streamInfo
-                                                        .videoResolution.width
-                                                        .toString() +
-                                                    '.' +
-                                                    streamInfo.container.name,
-                                              );
-                                            },
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
+                                VideoList(videoController: _videoController),
                                 Text(
                                   'Audio Only :- ',
                                   style: TextStyle(
@@ -197,6 +152,58 @@ class DownloaderPage extends StatelessWidget {
                     ),
         ),
       ],
+    );
+  }
+}
+
+class VideoList extends StatelessWidget {
+  const VideoList({
+    Key key,
+    @required VideoController videoController,
+  })  : _videoController = videoController,
+        super(key: key);
+
+  final VideoController _videoController;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(
+      () => ListView.builder(
+        padding: EdgeInsets.only(
+          bottom: 16.0,
+        ),
+        shrinkWrap: true,
+        physics: NeverScrollableScrollPhysics(),
+        itemCount: _videoController.videoInfo.value.streamInfo.muxed.length,
+        itemBuilder: (context, index) {
+          var streamInfo = _videoController.videoInfo.value.streamInfo.muxed
+              .elementAt(index);
+          return Card(
+            child: ListTile(
+              title: Text(
+                streamInfo.videoQualityLabel,
+              ),
+              trailing: IconButton(
+                icon: Icon(Icons.download_outlined),
+                onPressed: () {
+                  _videoController.downloadVideo(
+                    streamInfo.url.toString(),
+                    _videoController.videoInfo.value.video.title +
+                        '_' +
+                        streamInfo.videoQualityLabel +
+                        '_' +
+                        streamInfo.videoResolution.height.toString() +
+                        'x' +
+                        streamInfo.videoResolution.width.toString() +
+                        '.' +
+                        streamInfo.container.name,
+                  );
+                },
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }
